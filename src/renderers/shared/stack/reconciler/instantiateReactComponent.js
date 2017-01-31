@@ -14,8 +14,8 @@
 var ReactCompositeComponent = require('ReactCompositeComponent');
 var ReactEmptyComponent = require('ReactEmptyComponent');
 var ReactHostComponent = require('ReactHostComponent');
-var ReactInstrumentation = require('ReactInstrumentation');
 
+var getNextDebugID = require('getNextDebugID');
 var invariant = require('invariant');
 var warning = require('warning');
 
@@ -25,7 +25,7 @@ var ReactCompositeComponentWrapper = function(element) {
 };
 Object.assign(
   ReactCompositeComponentWrapper.prototype,
-  ReactCompositeComponent.Mixin,
+  ReactCompositeComponent,
   {
     _instantiateReactComponent: instantiateReactComponent,
   }
@@ -39,21 +39,6 @@ function getDeclarationErrorAddendum(owner) {
     }
   }
   return '';
-}
-
-function getDisplayName(instance) {
-  var element = instance._currentElement;
-  if (element == null) {
-    return '#empty';
-  } else if (typeof element === 'string' || typeof element === 'number') {
-    return '#text';
-  } else if (typeof element.type === 'string') {
-    return element.type;
-  } else if (instance.getName) {
-    return instance.getName() || 'Unknown';
-  } else {
-    return element.type.displayName || element.type.name || 'Unknown';
-  }
 }
 
 /**
@@ -72,8 +57,6 @@ function isInternalComponentType(type) {
   );
 }
 
-var nextDebugID = 1;
-
 /**
  * Given a ReactNode, create an instance that will actually be mounted.
  *
@@ -89,14 +72,33 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
     instance = ReactEmptyComponent.create(instantiateReactComponent);
   } else if (typeof node === 'object') {
     var element = node;
-    invariant(
-      element && (typeof element.type === 'function' ||
-                  typeof element.type === 'string'),
-      'Element type is invalid: expected a string (for built-in components) ' +
-      'or a class/function (for composite components) but got: %s.%s',
-      element.type == null ? element.type : typeof element.type,
-      getDeclarationErrorAddendum(element._owner)
-    );
+    var type = element.type;
+    if (
+      typeof type !== 'function' &&
+      typeof type !== 'string'
+    ) {
+      var info = '';
+      if (__DEV__) {
+        if (
+          type === undefined ||
+          typeof type === 'object' &&
+          type !== null &&
+          Object.keys(type).length === 0
+        ) {
+          info +=
+            ' You likely forgot to export your component from the file ' +
+            'it\'s defined in.';
+        }
+      }
+      info += getDeclarationErrorAddendum(element._owner);
+      invariant(
+        false,
+        'Element type is invalid: expected a string (for built-in components) ' +
+        'or a class/function (for composite components) but got: %s.%s',
+        type == null ? type : typeof type,
+        info,
+      );
+    }
 
     // Special case string values
     if (typeof element.type === 'string') {
@@ -141,18 +143,7 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
   instance._mountImage = null;
 
   if (__DEV__) {
-    if (shouldHaveDebugID) {
-      var debugID = nextDebugID++;
-      instance._debugID = debugID;
-      var displayName = getDisplayName(instance);
-      ReactInstrumentation.debugTool.onSetDisplayName(debugID, displayName);
-      var owner = node && node._owner;
-      if (owner) {
-        ReactInstrumentation.debugTool.onSetOwner(debugID, owner._debugID);
-      }
-    } else {
-      instance._debugID = 0;
-    }
+    instance._debugID = shouldHaveDebugID ? getNextDebugID() : 0;
   }
 
   // Internal instances should fully constructed at this point, so they should

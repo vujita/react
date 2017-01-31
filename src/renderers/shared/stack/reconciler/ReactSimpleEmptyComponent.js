@@ -23,14 +23,16 @@ Object.assign(ReactSimpleEmptyComponent.prototype, {
     transaction,
     hostParent,
     hostContainerInfo,
-    context
+    context,
+    parentDebugID // 0 in production and for roots
   ) {
     return ReactReconciler.mountComponent(
       this._renderedComponent,
       transaction,
       hostParent,
       hostContainerInfo,
-      context
+      context,
+      parentDebugID
     );
   },
   receiveComponent: function() {
@@ -38,8 +40,12 @@ Object.assign(ReactSimpleEmptyComponent.prototype, {
   getHostNode: function() {
     return ReactReconciler.getHostNode(this._renderedComponent);
   },
-  unmountComponent: function() {
-    ReactReconciler.unmountComponent(this._renderedComponent);
+  unmountComponent: function(safely, skipLifecycle) {
+    ReactReconciler.unmountComponent(
+      this._renderedComponent,
+      safely,
+      skipLifecycle
+    );
     this._renderedComponent = null;
   },
 });

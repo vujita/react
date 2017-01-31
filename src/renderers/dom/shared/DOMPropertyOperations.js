@@ -13,7 +13,6 @@
 
 var DOMProperty = require('DOMProperty');
 var ReactDOMComponentTree = require('ReactDOMComponentTree');
-var ReactDOMInstrumentation = require('ReactDOMInstrumentation');
 var ReactInstrumentation = require('ReactInstrumentation');
 
 var quoteAttributeValueForBrowser = require('quoteAttributeValueForBrowser');
@@ -89,9 +88,6 @@ var DOMPropertyOperations = {
    * @return {?string} Markup string, or null if the property was invalid.
    */
   createMarkupForProperty: function(name, value) {
-    if (__DEV__) {
-      ReactDOMInstrumentation.debugTool.onCreateMarkupForProperty(name, value);
-    }
     var propertyInfo = DOMProperty.properties.hasOwnProperty(name) ?
         DOMProperty.properties[name] : null;
     if (propertyInfo) {
@@ -142,7 +138,7 @@ var DOMPropertyOperations = {
       if (mutationMethod) {
         mutationMethod(node, value);
       } else if (shouldIgnoreValue(propertyInfo, value)) {
-        this.deleteValueForProperty(node, name);
+        DOMPropertyOperations.deleteValueForProperty(node, name);
         return;
       } else if (propertyInfo.mustUseProperty) {
         // Contrary to `setAttribute`, object properties are properly
@@ -168,14 +164,13 @@ var DOMPropertyOperations = {
     }
 
     if (__DEV__) {
-      ReactDOMInstrumentation.debugTool.onSetValueForProperty(node, name, value);
       var payload = {};
       payload[name] = value;
-      ReactInstrumentation.debugTool.onHostOperation(
-        ReactDOMComponentTree.getInstanceFromNode(node)._debugID,
-        'update attribute',
-        payload
-      );
+      ReactInstrumentation.debugTool.onHostOperation({
+        instanceID: ReactDOMComponentTree.getInstanceFromNode(node)._debugID,
+        type: 'update attribute',
+        payload: payload,
+      });
     }
   },
 
@@ -192,11 +187,11 @@ var DOMPropertyOperations = {
     if (__DEV__) {
       var payload = {};
       payload[name] = value;
-      ReactInstrumentation.debugTool.onHostOperation(
-        ReactDOMComponentTree.getInstanceFromNode(node)._debugID,
-        'update attribute',
-        payload
-      );
+      ReactInstrumentation.debugTool.onHostOperation({
+        instanceID: ReactDOMComponentTree.getInstanceFromNode(node)._debugID,
+        type: 'update attribute',
+        payload: payload,
+      });
     }
   },
 
@@ -209,12 +204,11 @@ var DOMPropertyOperations = {
   deleteValueForAttribute: function(node, name) {
     node.removeAttribute(name);
     if (__DEV__) {
-      ReactDOMInstrumentation.debugTool.onDeleteValueForProperty(node, name);
-      ReactInstrumentation.debugTool.onHostOperation(
-        ReactDOMComponentTree.getInstanceFromNode(node)._debugID,
-        'remove attribute',
-        name
-      );
+      ReactInstrumentation.debugTool.onHostOperation({
+        instanceID: ReactDOMComponentTree.getInstanceFromNode(node)._debugID,
+        type: 'remove attribute',
+        payload: name,
+      });
     }
   },
 
@@ -246,12 +240,11 @@ var DOMPropertyOperations = {
     }
 
     if (__DEV__) {
-      ReactDOMInstrumentation.debugTool.onDeleteValueForProperty(node, name);
-      ReactInstrumentation.debugTool.onHostOperation(
-        ReactDOMComponentTree.getInstanceFromNode(node)._debugID,
-        'remove attribute',
-        name
-      );
+      ReactInstrumentation.debugTool.onHostOperation({
+        instanceID: ReactDOMComponentTree.getInstanceFromNode(node)._debugID,
+        type: 'remove attribute',
+        payload: name,
+      });
     }
   },
 
